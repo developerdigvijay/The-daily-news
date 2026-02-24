@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="The Daily News - Your source for the latest tech, science, and world news.">
+    <title>The Daily News | Latest Stories & Trends</title>
+    <link rel="stylesheet" href="styles/styles.css">
+</head>
+
+<body id="home-page">
+
+    <header class="site-header">
+        <div class="container header-inner">
+            <a href="index.html" class="logo">
+                <span>The</span>DailyNews
+            </a>
+
+            <div class="search-container">
+                <span class="search-icon" aria-hidden="true">&#128269;</span>
+                <input type="text" id="site-search" class="search-input" placeholder="Search stories..."
+                    aria-label="Search stories">
+            </div>
+        </div>
+    </header>
+
+    <main class="container main-content main-layout">
+
+        <!-- Left Column: Hero & Feed -->
+        <section class="content-column">
+            <div id="hero-container" class="hero">
+                <!-- Hero Rendered via JS -->
+                <div style="background:#eee; height:300px; border-radius:12px;"></div> <!-- Loading skeleton -->
+            </div>
+
+            <div class="feed-section">
+                <header class="section-title">
+                    Latest Stories
+                </header>
+                <div id="articles-grid" class="articles-grid">
+                    <!-- Grid Rendered via JS -->
+                </div>
+            </div>
+        </section>
+
+        <!-- Right Column: Trending -->
+        <aside class="sidebar-column">
+            <div class="trending-sidebar">
+                <header class="section-title">
+                    Trending
+                    <span class="refresh-timer" aria-label="Updates automatically">Live</span>
+                </header>
+                <div id="trending-list" class="trending-list">
+                    <!-- Trending List Rendered via JS -->
+                </div>
+            </div>
+        </aside>
+
+    </main>
+
+    <footer class="site-footer">
+        <div class="container">
+            <div class="logo" style="justify-content:center; margin-bottom: 1rem; color:white;">
+                <span>The</span>DailyNews
+            </div>
+            <p>&copy; 2023 The Daily News. Pure HTML/CSS/JS Project.</p>
+            <nav class="footer-links">
+                <a href="#">About</a>
+                <a href="#">Privacy</a>
+                <a href="#">Contact</a>
+            </nav>
+        </div>
+    </footer>
+
+    <script src="scripts/main.js"></script>
+</body>
+
+</html>
