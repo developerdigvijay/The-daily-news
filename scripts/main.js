@@ -117,6 +117,9 @@ let TRENDING_TOPICS = [
  */
 
 document.addEventListener('DOMContentLoaded', () => {
+    // apply saved theme
+    initTheme();
+
     // Determine page type
     const isHomePage = !!document.getElementById('home-page');
     const isArticlePage = !!document.getElementById('article-page');
@@ -129,6 +132,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Shared functionality
     initSearch();
+    initMobileMenu();
 });
 
 // state for filtering & pagination
@@ -137,6 +141,51 @@ let currentSearchQuery = '';
 let currentPage = 1;
 const PAGE_SIZE = 3;
 let lastFiltered = ARTICLES;
+
+// mobile menu
+function initMobileMenu() {
+    const toggle = document.getElementById('menu-toggle');
+    const menu = document.getElementById('mobile-menu');
+    if (!toggle || !menu) return;
+    toggle.addEventListener('click', () => {
+        menu.classList.toggle('open');
+    });
+    // close when clicking outside
+    document.addEventListener('click', e => {
+        if (!menu.contains(e.target) && e.target !== toggle) {
+            menu.classList.remove('open');
+        }
+    });
+}
+
+// theme state
+function initTheme() {
+    const stored = localStorage.getItem('theme');
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    const theme = stored || (prefersDark ? 'dark' : 'light');
+    applyTheme(theme);
+
+    const toggle = document.getElementById('theme-toggle');
+    if (toggle) {
+        toggle.addEventListener('click', () => {
+            const newTheme = document.body.classList.contains('dark') ? 'light' : 'dark';
+            applyTheme(newTheme);
+            localStorage.setItem('theme', newTheme);
+        });
+    }
+}
+
+function applyTheme(theme) {
+    if (theme === 'dark') {
+        document.body.classList.add('dark');
+        const tbtn = document.getElementById('theme-toggle');
+        if (tbtn) tbtn.textContent = '☀️';
+    } else {
+        document.body.classList.remove('dark');
+        const tbtn = document.getElementById('theme-toggle');
+        if (tbtn) tbtn.textContent = '🌙';
+    }
+}
 
 function initHomePage() {
     renderFeatured();
@@ -178,10 +227,9 @@ function renderFeatured() {
     const heroContainer = document.getElementById('hero-container');
     if (!heroContainer) return;
 
-    // Pick the first featured article
+    // Pick the first featured article (static)
     const heroArticle = ARTICLES.find(a => a.featured) || ARTICLES[0];
 
-    // Add reveal-init class for animation
     heroContainer.innerHTML = `
         <div class="hero-card reveal-init" onclick="window.location.href='article.html?id=${heroArticle.id}'">
             <img src="${heroArticle.image}" alt="${heroArticle.title}" class="hero-image">
@@ -195,9 +243,10 @@ function renderFeatured() {
         </div>
     `;
 
-    // Start observing newly added elements
     observeReveals();
 }
+
+
 
 function renderFeed(articles) {
     const grid = document.getElementById('articles-grid');
@@ -239,10 +288,9 @@ function renderFeed(articles) {
 
 
 function initSearch() {
-    const searchInput = document.getElementById('site-search');
-    if (!searchInput) return;
-
-    searchInput.addEventListener('input', (e) => {
+    const homeInput = document.getElementById('site-search');
+    const mobileInput = document.getElementById('mobile-search');
+    const handler = (e) => {
         currentSearchQuery = e.target.value.toLowerCase();
         const isHomePage = !!document.getElementById('home-page');
 
@@ -251,8 +299,12 @@ function initSearch() {
         } else if (e.target.value.length > 3 && e.key === 'Enter') {
             window.location.href = 'index.html';
         }
-    });
+    };
+
+    if (homeInput) homeInput.addEventListener('input', handler);
+    if (mobileInput) mobileInput.addEventListener('input', handler);
 }
+
 
 // compute and render based on current filters/search
 function applyFilters() {
@@ -274,27 +326,42 @@ function applyFilters() {
 
 function renderCategoryFilters() {
     const container = document.getElementById('category-filters');
-    if (!container) return;
+    const mobileContainer = document.getElementById('mobile-filters');
+    if (!container && !mobileContainer) return;
 
     // gather unique categories
     const categories = Array.from(new Set(ARTICLES.map(a => a.category)));
     categories.sort();
     categories.unshift('All');
 
-    container.innerHTML = categories.map(cat => {
+    const html = categories.map(cat => {
         const activeClass = cat === currentCategory ? 'active' : '';
         return `<button class="filter-btn ${activeClass}" data-category="${cat}">${cat}</button>`;
     }).join(' ');
 
-    // add event listeners
-    container.querySelectorAll('.filter-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-            currentCategory = btn.dataset.category;
-            // update active state
-            container.querySelectorAll('.filter-btn').forEach(b => b.classList.toggle('active', b === btn));
-            applyFilters();
+    if (container) container.innerHTML = html;
+    if (mobileContainer) mobileContainer.innerHTML = html;
+
+    // add event listeners to both
+    const bindEvents = (parent) => {
+        parent.querySelectorAll('.filter-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                currentCategory = btn.dataset.category;
+                // update active state on both
+                [container, mobileContainer].forEach(c => {
+                    if (!c) return;
+                    c.querySelectorAll('.filter-btn').forEach(b => b.classList.toggle('active', b === btn));
+                });
+                applyFilters();
+                // close mobile menu if open
+                const menu = document.getElementById('mobile-menu');
+                if (menu) menu.classList.remove('open');
+            });
         });
-    });
+    };
+
+    if (container) bindEvents(container);
+    if (mobileContainer) bindEvents(mobileContainer);
 }
 
 
@@ -314,6 +381,49 @@ function toggleLoadMore(show, total) {
     const container = document.getElementById('load-more-container');
     if (!container) return;
     container.style.display = show ? 'block' : 'none';
+}
+
+// Share utilities
+function renderShareButtons(article) {
+    const root = document.getElementById('share-buttons');
+    if (!root) return;
+
+    const pageUrl = encodeURIComponent(window.location.href);
+    const text = encodeURIComponent(article.title);
+    const twitterUrl = `https://twitter.com/intent/tweet?url=${pageUrl}&text=${text}`;
+    const facebookUrl = `https://www.facebook.com/sharer/sharer.php?u=${pageUrl}`;
+
+    root.innerHTML = `
+        <div class="share-button" data-url="${twitterUrl}">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M23.643 4.937a9.72 9.72 0 01-2.828.775 4.932 4.932 0 002.163-2.724 9.864 9.864 0 01-3.127 1.195 4.916 4.916 0 00-8.383 4.482A13.941 13.941 0 011.671 3.149a4.917 4.917 0 001.523 6.562 4.902 4.902 0 01-2.228-.616v.062a4.917 4.917 0 003.946 4.827 4.902 4.902 0 01-2.224.084 4.917 4.917 0 004.588 3.417A9.867 9.867 0 010 19.54a13.94 13.94 0 007.548 2.212c9.055 0 14.002-7.514 14.002-14.033 0-.213-.005-.425-.014-.636A10.012 10.012 0 0024 4.59z"/></svg>
+            <span>Twitter</span>
+        </div>
+        <div class="share-button" data-url="${facebookUrl}">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M22.675 0h-21.35C.597 0 0 .597 0 1.333v21.333C0 23.403.597 24 1.325 24H12.82v-9.294H9.692v-3.622h3.128V8.413c0-3.1 1.893-4.788 4.659-4.788 1.325 0 2.463.099 2.795.142v3.24l-1.918.001c-1.504 0-1.795.715-1.795 1.763v2.31h3.587l-.467 3.622h-3.12V24h6.116C23.403 24 24 23.403 24 22.667V1.333C24 .597 23.403 0 22.675 0z"/></svg>
+            <span>Facebook</span>
+        </div>
+        <div class="share-button" id="copy-link" data-url="${window.location.href}">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h3v1.5h-3a1.6 1.6 0 00-1.6 1.6 1.6 1.6 0 001.6 1.6h3v1.5h-3A3.1 3.1 0 003.9 12zm4.5-2.1h8.1a3.1 3.1 0 013.1 3.1c0 .86-.34 1.65-.89 2.24l1.06 1.06a4.6 4.6 0 00.83-3.3 4.6 4.6 0 00-4.6-4.6H8.4v1.5zm6.6 2.6h-6.6v-1.5h6.6v1.5zm4.5 4.5h-8.1a3.1 3.1 0 01-3.1-3.1c0-.86.34-1.65.89-2.24l-1.06-1.06a4.6 4.6 0 00-.83 3.3 4.6 4.6 0 004.6 4.6h8.1v-1.5z"/></svg>
+            <span>Copy link</span>
+        </div>
+    `;
+
+    // attach click handlers for external sharing and copying
+    root.querySelectorAll('.share-button').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const url = btn.dataset.url;
+            if (btn.id === 'copy-link') {
+                navigator.clipboard.writeText(url).then(() => {
+                    btn.textContent = 'Copied!';
+                    setTimeout(() => {
+                        btn.innerHTML = `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h3v1.5h-3a1.6 1.6 0 00-1.6 1.6 1.6 1.6 0 001.6 1.6h3v1.5h-3A3.1 3.1 0 003.9 12zm4.5-2.1h8.1a3.1 3.1 0 013.1 3.1c0 .86-.34 1.65-.89 2.24l1.06 1.06a4.6 4.6 0 00.83-3.3 4.6 4.6 0 00-4.6-4.6H8.4v1.5zm6.6 2.6h-6.6v-1.5h6.6v1.5zm4.5 4.5h-8.1a3.1 3.1 0 01-3.1-3.1c0-.86.34-1.65.89-2.24l-1.06-1.06a4.6 4.6 0 00-.83 3.3 4.6 4.6 0 004.6 4.6h8.1v-1.5z"/></svg><span>Copy link</span>`;
+                    }, 2000);
+                });
+            } else {
+                window.open(url, '_blank', 'noopener');
+            }
+        });
+    });
 }
 
 // Comments utilities
@@ -472,6 +582,9 @@ function initArticlePage() {
                     By <strong>${article.author}</strong> | ${article.date}
                 </div>
             </header>
+            <div id="share-buttons" class="share-buttons">
+                <!-- buttons populated by JS -->
+            </div>
             <div class="article-body">
                 ${article.content}
             </div>
@@ -479,7 +592,8 @@ function initArticlePage() {
         </div>
     `;
 
-    // render comments after article content
+    // render share links and comments
+    renderShareButtons(article);
     renderCommentsSection(article.id);
 
     // Note: CSS animations on .article-cover and .article-container 

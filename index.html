@@ -22,7 +22,20 @@
                 <input type="text" id="site-search" class="search-input" placeholder="Search stories..."
                     aria-label="Search stories">
             </div>
+            <button id="menu-toggle" class="menu-toggle" aria-label="Toggle menu">&#9776;</button>
+            <button id="theme-toggle" class="theme-toggle" aria-label="Toggle dark mode">🌙</button>
         </div>
+    </header>
+
+    <div id="mobile-menu" class="mobile-menu">
+        <div class="mobile-search-container">
+            <span class="search-icon" aria-hidden="true">&#128269;</span>
+            <input type="text" id="mobile-search" class="search-input" placeholder="Search stories..."
+                aria-label="Search stories">
+        </div>
+        <div id="mobile-filters" class="filters-container"></div>
+    </div>
+    </div>
     </header>
 
     <main class="container main-content main-layout">
@@ -33,6 +46,7 @@
                 <!-- Hero Rendered via JS -->
                 <div style="background:#eee; height:300px; border-radius:12px;"></div> <!-- Loading skeleton -->
             </div>
+
 
             <div class="feed-section">
                 <header class="section-title">
