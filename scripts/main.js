@@ -131,11 +131,22 @@ document.addEventListener('DOMContentLoaded', () => {
     initSearch();
 });
 
+// state for filtering & pagination
+let currentCategory = 'All';
+let currentSearchQuery = '';
+let currentPage = 1;
+const PAGE_SIZE = 3;
+let lastFiltered = ARTICLES;
+
 function initHomePage() {
     renderFeatured();
-    renderFeed(ARTICLES); // Initial render
+    renderCategoryFilters(); // build filter buttons
+    applyFilters(); // renders initial feed with pagination support
+    initLoadMore();
     initTrending();
 }
+
+
 
 /**
  * ANIMATION / REVEAL LOGIC
@@ -192,15 +203,19 @@ function renderFeed(articles) {
     const grid = document.getElementById('articles-grid');
     if (!grid) return;
 
-    if (articles.length === 0) {
+    // pagination slice
+    const total = articles.length;
+    const end = Math.min(currentPage * PAGE_SIZE, total);
+    const pageItems = articles.slice(0, end);
+
+    if (pageItems.length === 0) {
         grid.innerHTML = `<div class="no-results reveal-init">No stories found matching your search.</div>`;
         observeReveals();
+        toggleLoadMore(false, total);
         return;
     }
 
-    grid.innerHTML = articles.map((article, index) => {
-        // Stagger animation delay slightly via style if needed, 
-        // or just let the observer naturally handle it as they come into view.
+    grid.innerHTML = pageItems.map((article, index) => {
         return `
         <article class="article-card reveal-init" role="article" onclick="window.location.href='article.html?id=${article.id}'" tabindex="0">
             <div class="card-image-wrapper">
@@ -219,32 +234,152 @@ function renderFeed(articles) {
     `}).join('');
 
     observeReveals();
+    toggleLoadMore(end < total, total);
 }
+
 
 function initSearch() {
     const searchInput = document.getElementById('site-search');
     if (!searchInput) return;
 
     searchInput.addEventListener('input', (e) => {
-        const query = e.target.value.toLowerCase();
+        currentSearchQuery = e.target.value.toLowerCase();
         const isHomePage = !!document.getElementById('home-page');
 
         if (isHomePage) {
-            const filtered = ARTICLES.filter(a =>
-                a.title.toLowerCase().includes(query) ||
-                a.excerpt.toLowerCase().includes(query) ||
-                a.category.toLowerCase().includes(query)
-            );
-            renderFeed(filtered);          // replace grid with matching items
+            applyFilters();
         } else if (e.target.value.length > 3 && e.key === 'Enter') {
             window.location.href = 'index.html';
         }
     });
 }
 
+// compute and render based on current filters/search
+function applyFilters() {
+    let result = ARTICLES;
+    if (currentCategory && currentCategory !== 'All') {
+        result = result.filter(a => a.category === currentCategory);
+    }
+    if (currentSearchQuery) {
+        result = result.filter(a =>
+            a.title.toLowerCase().includes(currentSearchQuery) ||
+            a.excerpt.toLowerCase().includes(currentSearchQuery) ||
+            a.category.toLowerCase().includes(currentSearchQuery)
+        );
+    }
+    lastFiltered = result;
+    currentPage = 1;
+    renderFeed(lastFiltered);
+}
+
+function renderCategoryFilters() {
+    const container = document.getElementById('category-filters');
+    if (!container) return;
+
+    // gather unique categories
+    const categories = Array.from(new Set(ARTICLES.map(a => a.category)));
+    categories.sort();
+    categories.unshift('All');
+
+    container.innerHTML = categories.map(cat => {
+        const activeClass = cat === currentCategory ? 'active' : '';
+        return `<button class="filter-btn ${activeClass}" data-category="${cat}">${cat}</button>`;
+    }).join(' ');
+
+    // add event listeners
+    container.querySelectorAll('.filter-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            currentCategory = btn.dataset.category;
+            // update active state
+            container.querySelectorAll('.filter-btn').forEach(b => b.classList.toggle('active', b === btn));
+            applyFilters();
+        });
+    });
+}
+
+
 /**
  * TRENDING LOGIC
  */
+function initLoadMore() {
+    const btn = document.getElementById('load-more-btn');
+    if (!btn) return;
+    btn.addEventListener('click', () => {
+        currentPage++;
+        renderFeed(lastFiltered);
+    });
+}
+
+function toggleLoadMore(show, total) {
+    const container = document.getElementById('load-more-container');
+    if (!container) return;
+    container.style.display = show ? 'block' : 'none';
+}
+
+// Comments utilities
+function getComments(articleId) {
+    const key = `comments_${articleId}`;
+    const raw = localStorage.getItem(key);
+    try {
+        return raw ? JSON.parse(raw) : [];
+    } catch (e) {
+        console.warn('Failed to parse comments', e);
+        return [];
+    }
+}
+
+function saveComments(articleId, comments) {
+    const key = `comments_${articleId}`;
+    localStorage.setItem(key, JSON.stringify(comments));
+}
+
+function renderCommentsSection(articleId) {
+    const root = document.getElementById('comments-root');
+    if (!root) return;
+    const comments = getComments(articleId);
+
+    const commentItems = comments.map(c => {
+        return `
+        <div class="comment">
+            <div class="comment-meta"><strong>${c.author}</strong> • ${new Date(c.timestamp).toLocaleString()}</div>
+            <div class="comment-text">${c.text}</div>
+        </div>
+        `;
+    }).join('');
+
+    root.innerHTML = `
+        <h2>Comments</h2>
+        <div class="comment-list">
+            ${commentItems || '<p>No comments yet. Be the first to comment!</p>'}
+        </div>
+        <form id="comment-form" class="comment-form">
+            <input type="text" id="comment-author" placeholder="Your name" required />
+            <textarea id="comment-text" rows="3" placeholder="Write a comment..." required></textarea>
+            <button type="submit">Post Comment</button>
+        </form>
+    `;
+
+    // attach submit handler
+    const form = document.getElementById('comment-form');
+    form.addEventListener('submit', e => {
+        e.preventDefault();
+        const authorInput = document.getElementById('comment-author');
+        const textInput = document.getElementById('comment-text');
+        const newComment = {
+            author: authorInput.value.trim() || 'Anon',
+            text: textInput.value.trim(),
+            timestamp: Date.now()
+        };
+        if (!newComment.text) return; // nothing to add
+
+        comments.push(newComment);
+        saveComments(articleId, comments);
+        // re-render comments list
+        renderCommentsSection(articleId);
+    });
+}
+
+
 function initTrending() {
     const container = document.getElementById('trending-list');
     if (!container) return;
@@ -340,8 +475,12 @@ function initArticlePage() {
             <div class="article-body">
                 ${article.content}
             </div>
+            <div id="comments-root" class="comments-section"></div>
         </div>
     `;
+
+    // render comments after article content
+    renderCommentsSection(article.id);
 
     // Note: CSS animations on .article-cover and .article-container 
     // handle the entrance automatically when inserted.
