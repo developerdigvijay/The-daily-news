@@ -43,8 +43,7 @@
         <!-- Left Column: Hero & Feed -->
         <section class="content-column">
             <div id="hero-container" class="hero">
-                <!-- Hero Rendered via JS -->
-                <div style="background:#eee; height:300px; border-radius:12px;"></div> <!-- Loading skeleton -->
+                <div class="skeleton skeleton-hero"></div>
             </div>
 
 
@@ -55,7 +54,24 @@
                 <!-- Category filter buttons inserted by JS -->
                 <div id="category-filters" class="filters-container"></div>
                 <div id="articles-grid" class="articles-grid">
-                    <!-- Grid Rendered via JS -->
+                    <div class="skeleton-card">
+                        <div class="skeleton-image"></div>
+                        <div class="skeleton-title"></div>
+                        <div class="skeleton-line"></div>
+                        <div class="skeleton-line"></div>
+                    </div>
+                    <div class="skeleton-card">
+                        <div class="skeleton-image"></div>
+                        <div class="skeleton-title"></div>
+                        <div class="skeleton-line"></div>
+                        <div class="skeleton-line"></div>
+                    </div>
+                    <div class="skeleton-card">
+                        <div class="skeleton-image"></div>
+                        <div class="skeleton-title"></div>
+                        <div class="skeleton-line"></div>
+                        <div class="skeleton-line"></div>
+                    </div>
                 </div>
                 <div id="load-more-container" class="load-more-container">
                     <button id="load-more-btn" class="load-more-btn">Load More</button>
@@ -71,7 +87,21 @@
                     <span class="refresh-timer" aria-label="Updates automatically">Live</span>
                 </header>
                 <div id="trending-list" class="trending-list">
-                    <!-- Trending List Rendered via JS -->
+                    <div class="skeleton-trending-item">
+                        <div class="skeleton-text" style="width:30%; height:20px; margin-bottom:var(--spacing-sm);">
+                        </div>
+                        <div class="skeleton-text" style="width:60%;"></div>
+                    </div>
+                    <div class="skeleton-trending-item">
+                        <div class="skeleton-text" style="width:30%; height:20px; margin-bottom:var(--spacing-sm);">
+                        </div>
+                        <div class="skeleton-text" style="width:60%;"></div>
+                    </div>
+                    <div class="skeleton-trending-item">
+                        <div class="skeleton-text" style="width:30%; height:20px; margin-bottom:var(--spacing-sm);">
+                        </div>
+                        <div class="skeleton-text" style="width:60%;"></div>
+                    </div>
                 </div>
             </div>
         </aside>
